@@ -143,7 +143,7 @@ pub fn host(port: u16) -> io::Result<Connection> {
     Connection::from_stream(stream)
 }
 
-/// Connect to a host at the given address (e.g. "192.168.1.5:7878").
+/// Connect to a host at the given address (e.g. "198.51.100.5:7878").
 /// Returns a `Connection` ready for the handshake.
 pub fn connect(addr: &str) -> io::Result<Connection> {
     println!("Connecting to {}...", addr);

@@ -1,0 +1,39 @@
+{
+  "name": "rust-vader",
+  "displayName": "Rust Vader — Terminal Battleship",
+  "description": "Play multiplayer Battleship right in your VS Code terminal",
+  "version": "0.1.0",
+  "publisher": "arbxz",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "battleship",
+    "game",
+    "terminal",
+    "multiplayer"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "rustVader.play",
+        "title": "Rust Vader: Play Battleship"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  }
+}

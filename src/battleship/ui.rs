@@ -11,7 +11,6 @@ use crossterm::{
     cursor,
     execute,
     style::{Color, Stylize},
-    terminal::{self, ClearType},
 };
 
 use super::game::{Board, Cell, GameState, Phase, ShipKind, GRID_SIZE};
@@ -20,8 +19,8 @@ use super::game::{Board, Cell, GameState, Phase, ShipKind, GRID_SIZE};
 // Layout constants
 // ---------------------------------------------------------------------------
 
-/// Column labels displayed above each grid (A through J).
-const COL_LABELS: [char; GRID_SIZE] = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+/// Column labels displayed above each grid (A through H).
+const COL_LABELS: [char; GRID_SIZE] = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
 /// Left grid starts at this terminal column.
 const LEFT_GRID_X: u16 = 2;
@@ -236,7 +235,7 @@ pub fn render_game(
     cursor_pos: Option<(u8, u8)>,
     status_msg: &str,
 ) -> io::Result<()> {
-    execute!(stdout, terminal::Clear(ClearType::All))?;
+    execute!(stdout, cursor::MoveTo(0, 0))?;
 
     // -- Titles above each grid --
     draw_title(stdout, "══ YOUR FLEET ══", LEFT_GRID_X, GRID_Y - 1, Color::Cyan)?;

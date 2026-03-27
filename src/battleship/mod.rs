@@ -24,6 +24,8 @@ use game::{Board, Cell, GameState, Phase, GRID_SIZE, IDLE_TIMEOUT_SECS};
 use network::Connection;
 use protocol::Message;
 
+use crate::audio::{Audio, Sfx};
+
 // ---------------------------------------------------------------------------
 // Cursor state for the aiming reticle
 // ---------------------------------------------------------------------------
@@ -81,6 +83,7 @@ fn handle_my_turn_input(
     state: &mut GameState,
     conn: &mut Connection,
     status_msg: &mut String,
+    audio: Option<&Audio>,
 ) -> io::Result<bool> {
     match key_code {
         KeyCode::Up | KeyCode::Char('w') | KeyCode::Char('W') => aim.move_up(),
@@ -89,7 +92,7 @@ fn handle_my_turn_input(
         KeyCode::Right | KeyCode::Char('d') | KeyCode::Char('D') => aim.move_right(),
 
         KeyCode::Enter | KeyCode::Char(' ') => {
-            fire_at_target(stdout, aim, state, conn, status_msg)?;
+            fire_at_target(stdout, aim, state, conn, status_msg, audio)?;
         }
 
         KeyCode::Char('t') | KeyCode::Char('T') => {
@@ -112,6 +115,7 @@ fn fire_at_target(
     state: &mut GameState,
     conn: &mut Connection,
     status_msg: &mut String,
+    audio: Option<&Audio>,
 ) -> io::Result<()> {
     let (cx, cy) = aim.pos();
 
@@ -131,18 +135,19 @@ fn fire_at_target(
                 state.tracking_board[y as usize][x as usize] = Cell::Hit;
                 // Flash animation on the tracking board
                 ui::flash_cell(stdout, x, y, true, true)?;
+                if let Some(a) = audio {
+                    if sunk.is_some() { a.play(Sfx::Sunk); } else { a.play(Sfx::Hit); }
+                }
                 *status_msg = match sunk {
                     Some(kind) => {
-                        // Flash the whole sunk ship if we know the cells
-                        // (we only know the hit cell, so just extra flash)
-                        format!("HIT! You sunk their {}!", kind.name())
+                        format!("HIT! You sunk their {}! Go again!", kind.name())
                     }
-                    None => "HIT!".to_string(),
+                    None => "HIT! Fire again!".to_string(),
                 };
             } else {
                 state.tracking_board[y as usize][x as usize] = Cell::Miss;
                 ui::flash_cell(stdout, x, y, false, true)?;
-                *status_msg = "Miss.".to_string();
+                *status_msg = "Miss. Turn over.".to_string();
             }
 
             // Check if we just won
@@ -151,6 +156,9 @@ fn fire_at_target(
                     winner: state.my_name.clone(),
                 })?;
                 state.phase = Phase::GameOver(true);
+            } else if hit {
+                // Hit grants another shot — stay on MyTurn
+                state.phase = Phase::MyTurn;
             } else {
                 state.phase = Phase::OpponentTurn;
             }
@@ -172,6 +180,7 @@ fn handle_opponent_message(
     state: &mut GameState,
     conn: &mut Connection,
     status_msg: &mut String,
+    audio: Option<&Audio>,
 ) -> io::Result<()> {
     match conn.try_recv()? {
         Some(Message::Fire { x, y }) => {
@@ -188,6 +197,9 @@ fn handle_opponent_message(
                         let cells = ship.cells.clone();
                         ui::flash_sunk_ship(stdout, &cells, false)?;
                     }
+                    if let Some(a) = audio { a.play(Sfx::Sunk); }
+                } else {
+                    if let Some(a) = audio { a.play(Sfx::Hit); }
                 }
             }
 
@@ -202,7 +214,11 @@ fn handle_opponent_message(
 
             if state.my_board.all_sunk() {
                 state.phase = Phase::GameOver(false);
+            } else if hit {
+                // Opponent hit — they get another shot, stay on OpponentTurn
+                state.phase = Phase::OpponentTurn;
             } else {
+                // Opponent missed — our turn now
                 state.phase = Phase::MyTurn;
             }
         }
@@ -255,10 +271,14 @@ fn game_loop(
     stdout: &mut io::Stdout,
     state: &mut GameState,
     conn: &mut Connection,
+    audio: Option<&Audio>,
 ) -> io::Result<()> {
     let mut aim = AimCursor::new();
     let mut status_msg = String::new();
     let mut last_activity = Instant::now();
+
+    // Full clear once at the start so stale content from the menu is gone
+    execute!(stdout, terminal::Clear(ClearType::All))?;
 
     loop {
         // -- Render --
@@ -302,6 +322,7 @@ fn game_loop(
                             state,
                             conn,
                             &mut status_msg,
+                            audio,
                         )? {
                             return Ok(());
                         }
@@ -328,7 +349,7 @@ fn game_loop(
         // During our turn: receive Chat messages
         match state.phase {
             Phase::OpponentTurn => {
-                handle_opponent_message(stdout, state, conn, &mut status_msg)?;
+                handle_opponent_message(stdout, state, conn, &mut status_msg, audio)?;
                 // Reset activity timer when turn switches to us
                 if state.phase == Phase::MyTurn {
                     last_activity = Instant::now();
@@ -415,7 +436,7 @@ fn handle_game_over(
 
 /// Launch the Battleship game. Handles connection setup, ship placement,
 /// and the main game loop. Can be called repeatedly for rematches.
-pub fn run() -> io::Result<()> {
+pub fn run(audio: Option<&Audio>) -> io::Result<()> {
     let mut stdout = io::stdout();
 
     // -- Connection menu: host or join --
@@ -472,7 +493,7 @@ pub fn run() -> io::Result<()> {
         };
 
         // Run the turn-based game loop
-        game_loop(&mut stdout, &mut state, &mut conn)?;
+        game_loop(&mut stdout, &mut state, &mut conn, audio)?;
 
         // If game ended without the rematch flag being set, exit
         if state.phase != Phase::Placing {

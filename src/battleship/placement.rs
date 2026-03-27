@@ -23,7 +23,7 @@ use super::game::{Board, Cell, Orientation, ShipKind, GRID_SIZE};
 // ---------------------------------------------------------------------------
 
 /// Column labels displayed above the grid (A through J).
-const COL_LABELS: [char; GRID_SIZE] = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+const COL_LABELS: [char; GRID_SIZE] = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
 /// Top-left corner of the grid rendering area (col offset in terminal).
 const GRID_OFFSET_X: u16 = 4;

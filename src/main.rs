@@ -1,5 +1,7 @@
+mod audio;
 mod battleship;
 
+use audio::{Audio, Sfx};
 use crossterm::{
     cursor,
     event::{self, Event, KeyCode, KeyEventKind},
@@ -29,6 +31,10 @@ const MENU_ITEMS: &[MenuItem] = &[
     MenuItem {
         label: "Battleship",
         desc: "Multiplayer naval warfare over network!",
+    },
+    MenuItem {
+        label: "Credits",
+        desc: "Sound effects & attribution",
     },
     MenuItem {
         label: "Quit",
@@ -153,8 +159,48 @@ fn draw_menu(stdout: &mut io::Stdout, selected: usize) -> io::Result<()> {
     stdout.flush()
 }
 
+fn show_credits(stdout: &mut io::Stdout) -> io::Result<()> {
+    execute!(stdout, terminal::Clear(ClearType::All))?;
+
+    execute!(stdout, cursor::MoveTo(4, 2))?;
+    write!(stdout, "{}", "╔══════════════ CREDITS ══════════════╗".with(Color::Cyan))?;
+    execute!(stdout, cursor::MoveTo(4, 3))?;
+    write!(stdout, "{}", "║                                     ║".with(Color::Cyan))?;
+    execute!(stdout, cursor::MoveTo(4, 4))?;
+    write!(stdout, "{}", "║  Sound Effects                      ║".with(Color::Cyan))?;
+    execute!(stdout, cursor::MoveTo(4, 5))?;
+    write!(stdout, "{}", "║  by @JDWasabi                       ║".with(Color::Yellow))?;
+    execute!(stdout, cursor::MoveTo(4, 6))?;
+    write!(stdout, "{}", "║  https://x.com/JDWasabi             ║".with(Color::DarkGrey))?;
+    execute!(stdout, cursor::MoveTo(4, 7))?;
+    write!(stdout, "{}", "║                                     ║".with(Color::Cyan))?;
+    execute!(stdout, cursor::MoveTo(4, 8))?;
+    write!(stdout, "{}", "║  Game                               ║".with(Color::Cyan))?;
+    execute!(stdout, cursor::MoveTo(4, 9))?;
+    write!(stdout, "{}", "║  Made with Rust + Crossterm         ║".with(Color::Green))?;
+    execute!(stdout, cursor::MoveTo(4, 10))?;
+    write!(stdout, "{}", "║                                     ║".with(Color::Cyan))?;
+    execute!(stdout, cursor::MoveTo(4, 11))?;
+    write!(stdout, "{}", "╚═════════════════════════════════════╝".with(Color::Cyan))?;
+
+    execute!(stdout, cursor::MoveTo(4, 13))?;
+    write!(stdout, "{}", "Press any key to return...".with(Color::DarkGrey))?;
+    stdout.flush()?;
+
+    // Wait for any key
+    loop {
+        if let Event::Key(key) = event::read()? {
+            if key.kind == KeyEventKind::Press {
+                break;
+            }
+        }
+    }
+    Ok(())
+}
+
 fn run_menu(stdout: &mut io::Stdout) -> io::Result<()> {
     let mut selected: usize = 0;
+    let audio = Audio::new();
 
     loop {
         execute!(stdout, terminal::Clear(ClearType::All))?;
@@ -174,29 +220,37 @@ fn run_menu(stdout: &mut io::Stdout) -> io::Result<()> {
                             } else {
                                 selected = MENU_ITEMS.len() - 1;
                             }
+                            if let Some(ref a) = audio { a.play(Sfx::Select); }
                             break;
                         }
                         KeyCode::Down | KeyCode::Char('s') | KeyCode::Char('S') => {
                             selected = (selected + 1) % MENU_ITEMS.len();
+                            if let Some(ref a) = audio { a.play(Sfx::Select); }
                             break;
                         }
                         KeyCode::Enter | KeyCode::Char(' ') => {
+                            if let Some(ref a) = audio { a.play(Sfx::Confirm); }
                             match selected {
                                 0 => {
                                     execute!(stdout, terminal::Clear(ClearType::All))?;
-                                    battleship::run()?;
+                                    battleship::run(audio.as_ref())?;
                                 }
-                                1 => return Ok(()),
+                                1 => {
+                                    show_credits(stdout)?;
+                                }
+                                2 => return Ok(()),
                                 _ => {}
                             }
                             break;
                         }
                         KeyCode::Char('1') => {
+                            if let Some(ref a) = audio { a.play(Sfx::Confirm); }
                             execute!(stdout, terminal::Clear(ClearType::All))?;
-                            battleship::run()?;
+                            battleship::run(audio.as_ref())?;
                             break;
                         }
                         KeyCode::Char('q') | KeyCode::Char('Q') | KeyCode::Esc => {
+                            if let Some(ref a) = audio { a.play(Sfx::Cancel); }
                             return Ok(());
                         }
                         _ => {}

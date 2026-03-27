@@ -4,8 +4,8 @@
 
 use std::fmt;
 
-/// Grid dimensions (10×10 classic Battleship board).
-pub const GRID_SIZE: usize = 10;
+/// Grid dimensions (8×8 board).
+pub const GRID_SIZE: usize = 8;
 
 // ---------------------------------------------------------------------------
 // Cell — represents the state of a single grid square
@@ -369,20 +369,20 @@ mod tests {
     #[test]
     fn place_ship_vertical_success() {
         let mut board = Board::new();
-        // Place a Destroyer (size 2) at (3,7) vertically → occupies (3,7) and (3,8)
+        // Place a Destroyer (size 2) at (3,6) vertically → occupies (3,6) and (3,7)
         assert!(board
-            .place_ship(ShipKind::Destroyer, 3, 7, Orientation::Vertical)
+            .place_ship(ShipKind::Destroyer, 3, 6, Orientation::Vertical)
             .is_ok());
 
+        assert_eq!(board.grid[6][3], Cell::Ship(ShipKind::Destroyer));
         assert_eq!(board.grid[7][3], Cell::Ship(ShipKind::Destroyer));
-        assert_eq!(board.grid[8][3], Cell::Ship(ShipKind::Destroyer));
     }
 
     #[test]
     fn place_ship_out_of_bounds_horizontal() {
         let mut board = Board::new();
-        // Carrier (size 5) at col 7 → would need cols 7,8,9,10,11 — out of bounds
-        let result = board.place_ship(ShipKind::Carrier, 7, 0, Orientation::Horizontal);
+        // Carrier (size 5) at col 5 → would need cols 5,6,7,8,9 — out of bounds
+        let result = board.place_ship(ShipKind::Carrier, 5, 0, Orientation::Horizontal);
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), "Ship placement is out of bounds");
     }
@@ -390,8 +390,8 @@ mod tests {
     #[test]
     fn place_ship_out_of_bounds_vertical() {
         let mut board = Board::new();
-        // Cruiser (size 3) at row 9 → would need rows 9,10,11 — out of bounds
-        let result = board.place_ship(ShipKind::Cruiser, 0, 9, Orientation::Vertical);
+        // Cruiser (size 3) at row 6 → would need rows 6,7,8 — out of bounds
+        let result = board.place_ship(ShipKind::Cruiser, 0, 6, Orientation::Vertical);
         assert!(result.is_err());
     }
 
@@ -423,10 +423,10 @@ mod tests {
             .place_ship(ShipKind::Cruiser, 0, 4, Orientation::Horizontal)
             .unwrap();
         board
-            .place_ship(ShipKind::Submarine, 0, 6, Orientation::Horizontal)
+            .place_ship(ShipKind::Submarine, 0, 5, Orientation::Horizontal)
             .unwrap();
         board
-            .place_ship(ShipKind::Destroyer, 0, 8, Orientation::Horizontal)
+            .place_ship(ShipKind::Destroyer, 0, 7, Orientation::Horizontal)
             .unwrap();
 
         assert_eq!(board.ships.len(), 5);
